@@ -6,11 +6,81 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Upload Image</title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title of the webpage -->
+    <title>Upload Hình Ảnh Nhanh Chóng | Chia Sẻ Ảnh Dễ Dàng</title>
+
+    <!-- Meta description for SEO -->
+    <meta name="description" content="Nền tảng upload hình ảnh nhanh chóng và tiện lợi. Chia sẻ hình ảnh của bạn dễ dàng với chất lượng cao và tốc độ tải nhanh.">
+
+    <!-- Meta keywords for SEO (Optional) -->
+    <meta name="keywords" content="upload hình ảnh, chia sẻ ảnh, upload nhanh, tải hình ảnh, hình ảnh chất lượng cao, chia sẻ ảnh trực tuyến, upload ảnh miễn phí">
+
+    <!-- Robots meta tag to control search engine crawling -->
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph meta tags for better social sharing -->
+    <meta property="og:title" content="Upload Hình Ảnh Nhanh Chóng | Chia Sẻ Ảnh Dễ Dàng">
+    <meta property="og:description" content="Chia sẻ và upload hình ảnh với tốc độ nhanh, chất lượng cao. Dễ dàng tải ảnh lên và chia sẻ với bạn bè trên các nền tảng mạng xã hội.">
+    <meta property="og:image" content="https://v4r.net/assets/site-image-ua62u0v5.png">
+    <meta property="og:url" content="https://up.v4r.net">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter card meta tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Upload Hình Ảnh Nhanh Chóng | Chia Sẻ Ảnh Dễ Dàng">
+    <meta name="twitter:description" content="Chia sẻ và upload hình ảnh với tốc độ nhanh chóng. Upload ảnh lên và chia sẻ dễ dàng với chất lượng vượt trội.">
+    <meta name="twitter:image" content="https://v4r.net/assets/site-image-ua62u0v5.png">
+
+    <!-- Favicon for website icon -->
+    <link rel="icon" href="https://v4r.net/assets/site-image-ua62u0v5.png" type="image/x-icon">
+
+    <!-- Canonical URL to prevent duplicate content issues -->
+    <link rel="canonical" href="https://up.v4r.net">
+
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "url": "https://up.v4r.net/",
+            "name": "Upload Hình Ảnh Nhanh Chóng | Chia Sẻ Ảnh Dễ Dàng",
+            "description": "Nền tảng upload hình ảnh nhanh chóng và tiện lợi. Chia sẻ hình ảnh của bạn dễ dàng với chất lượng cao và tốc độ tải nhanh.",
+            "publisher": {
+                "@type": "Organization",
+                "name": "Upload Hình Ảnh Nhanh Chóng",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://v4r.net/assets/site-image-ua62u0v5.png"
+                },
+                "sameAs": [
+                    "https://www.facebook.com/v4r.net/"
+                ]
+            },
+            "mainEntityOfPage": {
+                "@type": "WebSite",
+                "@id": "https://up.v4r.net/"
+            },
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://up.v4r.net/search?q={search_term}",
+                "query-input": "required name=search_term"
+            },
+            "founder": {
+                "@type": "Person",
+                "name": "V4R Team",
+                "url": "https://v4r.net",
+                "sameAs": [
+                    "https://www.facebook.com/v4r.net/"
+                ]
+            },
+            "foundingDate": "2025",
+            "email": "dev@v4r.net",
+            "legalName": "V4R Team",
+        }
+    </script>
+
     <link rel="stylesheet" href="./style.css">
 </head>
 
@@ -18,6 +88,13 @@
     <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
+    <header class="header">
+        <div class="header-container">
+            <a href="/" id="home-link">
+                <img src="https://v4r.net/assets/logo-tvzme3ed.png" alt="V4R.NET - Upload" class="Header-logo">
+            </a>
+        </div>
+    </header>
 
     <div class="container">
         <div class="upload-container">
@@ -69,6 +146,12 @@
             </div>
         </div>
     </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <p class="footer-text">© 2025 <a href="https://v4r.net/" target="_blank">V4R Team.</a> All rights reserved.</p>
+        </div>
+    </footer>
 
     <script src="./script.js"></script>
 </body>

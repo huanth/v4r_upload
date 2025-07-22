@@ -81,6 +81,19 @@
         }
     </script>
 
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Upload Hình Ảnh Nhanh Chóng | Chia Sẻ Ảnh Dễ Dàng",
+            "url": "https://up.v4r.net/",
+            "logo": "https://v4r.net/assets/site-image-ua62u0v5.png",
+            "sameAs": [
+                "https://www.facebook.com/v4r.net/"
+            ]
+        }
+    </script>
+
     <link rel="stylesheet" href="./style.css">
 </head>
 

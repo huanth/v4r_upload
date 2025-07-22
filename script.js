@@ -12,7 +12,7 @@ class FileUploadComponent {
 
         this.files = [];
         this.maxFileSize = 10 * 1024 * 1024; // 10MB
-        this.allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+        this.allowedTypes = ["image/jpg", "image/jpeg", "image/png", "image/gif", "image/webp"];
 
         this.init();
     }

@@ -168,69 +168,102 @@ class FileUploadComponent {
 
     simulateUpload() {
         this.uploadBox.classList.add("uploading");
-
         let completedFiles = 0;
         const totalFiles = this.files.length;
-
-        this.files.forEach((fileObj, index) => {
-            setTimeout(() => {
-                this.uploadFile(fileObj, (progress) => {
-                    const overallProgress = ((completedFiles + progress / 100) / totalFiles) * 100;
-                    this.updateProgress(overallProgress);
-
-                    if (progress === 100) {
-                        completedFiles++;
-                        if (completedFiles === totalFiles) {
-                            this.completeUpload();
-                        }
-                    }
-                });
-            }, index * 200);
+        const uploadPromises = this.files.map((fileObj) => {
+            return this.uploadFileToServer(fileObj).then(() => {
+                completedFiles++;
+                if (completedFiles === totalFiles) {
+                    this.completeUpload();
+                }
+            });
         });
     }
 
-    uploadFile(fileObj, progressCallback) {
-        let progress = 0;
-        const fileElement = document.querySelector(`[data-file-id="${fileObj.id}"]`);
-
-        const uploadInterval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress >= 100) {
-                progress = 100;
-                clearInterval(uploadInterval);
-
-                fileObj.status = "success";
-                const statusIcon = fileElement.querySelector(".status-icon");
-                statusIcon.className = "status-icon status-success";
-                statusIcon.textContent = "✓";
-            }
-
-            progressCallback(progress);
-        }, 100 + Math.random() * 200);
+    getOverallProgress() {
+        if (!this.files.length) return 0;
+        const total = this.files.reduce((sum, f) => sum + (f.progress || 0), 0);
+        return total / this.files.length;
     }
+
+    // uploadFile(fileObj, progressCallback) {
+    //     let progress = 0;
+    //     const fileElement = document.querySelector(`[data-file-id="${fileObj.id}"]`);
+
+    //     const uploadInterval = setInterval(() => {
+    //         progress += Math.random() * 15;
+    //         if (progress >= 100) {
+    //             progress = 100;
+    //             clearInterval(uploadInterval);
+
+    //             fileObj.status = "success";
+    //             const statusIcon = fileElement.querySelector(".status-icon");
+    //             statusIcon.className = "status-icon status-success";
+    //             statusIcon.textContent = "✓";
+    //         }
+
+    //         progressCallback(progress);
+    //     }, 100 + Math.random() * 200);
+    // }
 
     async uploadFileToServer(fileObj) {
         const formData = new FormData();
         formData.append("file", fileObj.file);
-
-        try {
-            const response = await fetch("upload.php", {
-                method: "POST",
-                body: formData,
-            });
-            const result = await response.json();
-            if (result.success) {
-                fileObj.status = "success";
-                fileObj.url = result.url; // Lưu lại url trả về
-                this.showFileUrl(fileObj);
-            } else {
+        const fileElement = document.querySelector(`[data-file-id="${fileObj.id}"]`);
+        return new Promise((resolve) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "upload.php", true);
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    fileObj.progress = percent;
+                    if (fileElement) {
+                        const statusIcon = fileElement.querySelector(".status-icon");
+                        statusIcon.textContent = percent + "%";
+                        statusIcon.className = "status-icon status-uploading";
+                    }
+                    this.updateProgress(this.getOverallProgress());
+                }
+            };
+            xhr.onload = () => {
+                let result = {};
+                try {
+                    result = JSON.parse(xhr.responseText);
+                } catch (e) {
+                    result = { success: false, message: "Upload failed" };
+                }
+                if (result.success) {
+                    fileObj.status = "success";
+                    fileObj.url = result.url;
+                    if (fileElement) {
+                        const statusIcon = fileElement.querySelector(".status-icon");
+                        statusIcon.className = "status-icon status-success";
+                        statusIcon.textContent = "✓";
+                    }
+                    this.showFileUrl(fileObj);
+                } else {
+                    fileObj.status = "error";
+                    if (fileElement) {
+                        const statusIcon = fileElement.querySelector(".status-icon");
+                        statusIcon.className = "status-icon status-error";
+                        statusIcon.textContent = "✗";
+                    }
+                    this.showError(result.message || "Upload failed");
+                }
+                resolve();
+            };
+            xhr.onerror = () => {
                 fileObj.status = "error";
-                this.showError(result.message || "Upload failed");
-            }
-        } catch (error) {
-            fileObj.status = "error";
-            this.showError("Upload failed");
-        }
+                if (fileElement) {
+                    const statusIcon = fileElement.querySelector(".status-icon");
+                    statusIcon.className = "status-icon status-error";
+                    statusIcon.textContent = "✗";
+                }
+                this.showError("Upload failed");
+                resolve();
+            };
+            xhr.send(formData);
+        });
     }
 
     showFileUrl(fileObj) {

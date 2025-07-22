@@ -176,9 +176,50 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
             <li><b>Total size:</b> <?php echo formatSize($totalSize); ?></li>
         </ul>
         <?php if ($totalFiles > 0) { ?>
-            <form method="post" onsubmit="return confirm('Are you sure you want to delete ALL images?');" style="text-align:center; margin-bottom:2rem;">
-                <button type="submit" name="delete_all" style="background:#f5576c; color:#fff; font-weight:600; border:none; border-radius:8px; padding:0.75rem 2rem; font-size:1rem; box-shadow:0 2px 8px #eee; cursor:pointer;">Delete All Images</button>
+            <form id="bulkDeleteForm" method="post" style="text-align:center; margin-bottom:2rem;" autocomplete="off" onsubmit="return false;">
+                <button type="button" id="bulkDeleteBtn" style="background:#f5576c; color:#fff; font-weight:600; border:none; border-radius:8px; padding:0.75rem 2rem; font-size:1rem; box-shadow:0 2px 8px #eee; cursor:pointer;">Delete All Images</button>
             </form>
+            <div id="passwordModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:9999; align-items:center; justify-content:center;">
+                <div style="background:#fff; padding:2rem 2.5rem; border-radius:16px; box-shadow:0 8px 32px #764ba2; max-width:350px; margin:auto; text-align:center;">
+                    <div style="font-size:1.2rem; font-weight:600; color:#764ba2; margin-bottom:1rem;">Enter password to delete all images</div>
+                    <input type="password" id="deletePassword" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid #eee; font-size:1rem; margin-bottom:1rem;" placeholder="Password" autocomplete="off">
+                    <div id="passwordError" style="color:#f5576c; font-size:0.98rem; margin-bottom:1rem; display:none;"></div>
+                    <button id="confirmDeleteBtn" style="background:#764ba2; color:#fff; font-weight:600; border:none; border-radius:8px; padding:0.75rem 2rem; font-size:1rem; margin-right:8px; cursor:pointer;">Confirm</button>
+                    <button id="cancelDeleteBtn" style="background:#eee; color:#764ba2; font-weight:600; border:none; border-radius:8px; padding:0.75rem 2rem; font-size:1rem; cursor:pointer;">Cancel</button>
+                </div>
+            </div>
+            <script>
+                // Password for bulk delete (change as needed)
+                const BULK_DELETE_PASSWORD = 'admin2025';
+                document.getElementById('bulkDeleteBtn').onclick = function() {
+                    document.getElementById('passwordModal').style.display = 'flex';
+                    document.getElementById('deletePassword').value = '';
+                    document.getElementById('passwordError').style.display = 'none';
+                };
+                document.getElementById('cancelDeleteBtn').onclick = function() {
+                    document.getElementById('passwordModal').style.display = 'none';
+                };
+                document.getElementById('confirmDeleteBtn').onclick = function() {
+                    var pass = document.getElementById('deletePassword').value;
+                    if (pass !== BULK_DELETE_PASSWORD) {
+                        document.getElementById('passwordError').innerText = 'Incorrect password!';
+                        document.getElementById('passwordError').style.display = 'block';
+                        return;
+                    }
+                    // Submit form via JS
+                    var form = document.getElementById('bulkDeleteForm');
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'delete_all';
+                    input.value = '1';
+                    form.appendChild(input);
+                    form.submit();
+                    document.getElementById('passwordModal').style.display = 'none';
+                };
+                document.getElementById('deletePassword').addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') document.getElementById('confirmDeleteBtn').click();
+                });
+            </script>
             <?php
             if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all'])) {
                 $deleted = 0;

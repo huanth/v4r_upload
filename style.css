@@ -401,7 +401,9 @@ p.footer-text a {
 }
 
 @keyframes successPulse {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
     }
 
@@ -493,6 +495,12 @@ p.footer-text a {
 
 .upload-box.dragover::before {
     opacity: 1;
+}
+
+.copy-text {
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 /* Animation for slide out */

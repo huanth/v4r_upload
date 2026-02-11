@@ -369,6 +369,19 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
 </head>
 
 <body>
+    <header class="header">
+        <div class="header-container">
+            <a href="/" id="home-link">
+                <!-- Using inline style for stats page header logo to match index if needed, or just depend on style.css -->
+                <img src="https://v4r.net/assets/logo-tvzme3ed.png" alt="V4R.NET - Upload" style="max-height: 40px;">
+            </a>
+            <div class="nav-links">
+                <a href="/">Trang chủ</a>
+                <a href="apidoc.php">API Doc</a>
+            </div>
+        </div>
+    </header>
+
     <div class="stats-box">
         <div class="stats-title">Upload Statistics</div>
         <ul class="stats-list">

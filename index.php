@@ -111,6 +111,10 @@ $csrfToken = $_SESSION['csrf_token'];
             <a href="/" id="home-link">
                 <img src="https://v4r.net/assets/logo-tvzme3ed.png" alt="V4R.NET - Upload" class="Header-logo">
             </a>
+            <div class="nav-links">
+                <a href="/" class="active">Trang chủ</a>
+                <a href="apidoc.php">API Doc</a>
+            </div>
         </div>
     </header>
 

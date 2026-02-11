@@ -27,14 +27,14 @@ session_start();
         }
         .api-title {
             font-size: 2rem;
-            color: #2d3748;
+            color: #f7fafc;
             margin-bottom: 1rem;
             border-bottom: 2px solid #e2e8f0;
             padding-bottom: 0.5rem;
         }
         .api-subtitle {
             font-size: 1.5rem;
-            color: #4a5568;
+            color: #f7fafc;
             margin-top: 2rem;
             margin-bottom: 1rem;
         }
@@ -131,14 +131,14 @@ session_start();
                 </table>
 
                 <h3>cURL Example</h3>
-                <div class="code-block">
+                <pre class="code-block">
 curl -X POST "https://up.v4r.net/api.php?action=upload" \
   -F "files[]=@image1.jpg" \
   -F "files[]=@image2.png"
-                </div>
+                </pre>
 
                 <h3>Response Thành Công</h3>
-                <div class="code-block">
+                <pre class="code-block">
 {
   "success": true,
   "data": [
@@ -154,7 +154,7 @@ curl -X POST "https://up.v4r.net/api.php?action=upload" \
     }
   ]
 }
-                </div>
+                </pre>
             </div>
 
             <div class="api-section">
@@ -165,24 +165,24 @@ curl -X POST "https://up.v4r.net/api.php?action=upload" \
                 <p>Xoá một hoặc nhiều ảnh. Content-Type: <code>application/json</code>.</p>
 
                 <h3>Body JSON</h3>
-                <div class="code-block">
+                <pre class="code-block">
 {
   "names": [
     "a1b2c3..._1739245678_image1.jpg",
     "xyz789..._1739245679_image2.png"
   ]
 }
-                </div>
+                </pre>
 
                 <h3>cURL Example</h3>
-                <div class="code-block">
+                <pre class="code-block">
 curl -X POST "https://up.v4r.net/api.php?action=delete" \
   -H "Content-Type: application/json" \
   -d '{"names": ["filename_to_delete.jpg"]}'
-                </div>
+                </pre>
 
                 <h3>Response</h3>
-                <div class="code-block">
+                <pre class="code-block">
 {
   "success": true,
   "data": [
@@ -192,7 +192,7 @@ curl -X POST "https://up.v4r.net/api.php?action=delete" \
     }
   ]
 }
-                </div>
+                </pre>
             </div>
 
             <div class="api-section">

@@ -108,7 +108,7 @@ session_start();
                 <div class="endpoint">
                     <span class="method">POST</span> /api.php?action=upload
                 </div>
-                <p>Upload một hoặc nhiều ảnh cùng lúc</p>
+                <p>Upload một hoặc nhiều ảnh cùng lúc.</p>
 
                 <p style="margin: 10px 0;background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 15px; border-radius:4px; color:#92400e;">⚠️ <strong>Lưu ý:</strong> Khi upload nhiều file, field <strong>BẮT BUỘC</strong> phải là <code>files[]</code> (có <code>[]</code>). Nếu dùng <code>files</code> (không có <code>[]</code>), PHP chỉ nhận file cuối cùng.</p>
                 
@@ -170,9 +170,9 @@ curl -X POST "https://up.v4r.net/api.php?action=upload" \
                 <div class="endpoint">
                     <span class="method">POST</span> /api.php?action=delete
                 </div>
-                <p>Xoá một hoặc nhiều ảnh. Content-Type: <code>application/json</code>.</p>
+                <p>Xoá một hoặc nhiều ảnh.</p>
 
-                <h3>Body JSON</h3>
+                <h3 style="margin: 10px 0;">Body JSON</h3>
                 <pre class="code-block">
 {
   "names": [

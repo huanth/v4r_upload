@@ -17,6 +17,8 @@ if (empty($csrfHeader) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESS
     exit;
 }
 
+require_once __DIR__ . '/config.php';
+
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!isset($input['url'])) {
@@ -27,7 +29,7 @@ if (!isset($input['url'])) {
 $url = $input['url'];
 
 // Only allow deleting files within the uploads directory
-$uploadsDir = realpath(__DIR__ . '/uploads');
+$uploadsDir = realpath(UPLOAD_DIR);
 $filePath = realpath(__DIR__ . '/' . ltrim($url, '/'));
 
 if (!$filePath || strpos($filePath, $uploadsDir) !== 0) {
@@ -37,7 +39,7 @@ if (!$filePath || strpos($filePath, $uploadsDir) !== 0) {
 }
 
 // Verify it's actually an image file before deleting
-$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+$allowedExtensions = array_merge(...array_values(ALLOWED_MIME_TYPES));
 $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 
 if (!in_array($ext, $allowedExtensions)) {

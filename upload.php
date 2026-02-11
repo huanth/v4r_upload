@@ -20,20 +20,12 @@ if (
     exit;
 }
 
-$targetDir = "uploads/";
+require_once __DIR__ . '/config.php';
+
+$targetDir = UPLOAD_DIR;
 if (!is_dir($targetDir)) {
     mkdir($targetDir, 0755, true);
 }
-
-// Allowed MIME types and corresponding extensions
-const ALLOWED_MIME_TYPES = [
-    'image/jpeg' => ['jpg', 'jpeg'],
-    'image/png'  => ['png'],
-    'image/gif'  => ['gif'],
-    'image/webp' => ['webp'],
-];
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 if (!isset($_FILES["file"])) {
     echo json_encode(['success' => false, 'message' => 'No file uploaded']);

@@ -1,9 +1,19 @@
+<?php
+/**
+ * index.php — Main UI for image upload application.
+ *
+ * Generates CSRF token for secure upload/delete operations.
+ * Provides drag & drop, click, and paste upload interface.
+ */
+
+session_start();
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['csrf_token'];
+?>
 <!DOCTYPE html>
-<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
-<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
-<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
-<html>
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
@@ -62,11 +72,6 @@
                 "@type": "WebSite",
                 "@id": "https://up.v4r.net/"
             },
-            "potentialAction": {
-                "@type": "SearchAction",
-                "target": "https://up.v4r.net/search?q={search_term}",
-                "query-input": "required name=search_term"
-            },
             "founder": {
                 "@type": "Person",
                 "name": "V4R Team",
@@ -75,9 +80,9 @@
                     "https://www.facebook.com/v4r.net/"
                 ]
             },
-            "foundingDate": "2025",
+            "foundingDate": "2026",
             "email": "dev@v4r.net",
-            "legalName": "V4R Team",
+            "legalName": "V4R Team"
         }
     </script>
 
@@ -98,9 +103,9 @@
 </head>
 
 <body>
-    <!--[if lt IE 7]>
-            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
-        <![endif]-->
+    <!-- CSRF token for JS -->
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
+
     <header class="header">
         <div class="header-container">
             <a href="/" id="home-link">
@@ -162,7 +167,7 @@
 
     <footer class="footer">
         <div class="footer-container">
-            <p class="footer-text">© 2025 <a href="https://v4r.net/" target="_blank">V4R Team.</a> All rights reserved.</p>
+            <p class="footer-text">© 2026 <a href="https://v4r.net/" target="_blank">V4R Team.</a> All rights reserved.</p>
         </div>
     </footer>
 

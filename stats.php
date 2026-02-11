@@ -1,10 +1,63 @@
 <?php
-// stats.php - Image upload statistics
+/**
+ * stats.php — Upload statistics dashboard with server-side authentication.
+ * 
+ * Displays uploaded images list with pagination and provides
+ * authenticated bulk delete functionality.
+ */
+
+session_start();
+
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Bulk delete password — stored server-side only
+const BULK_DELETE_PASSWORD = 'admin2026';
+
 $dir = __DIR__ . '/uploads';
 $perPage = 10;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $start = ($page - 1) * $perPage;
 
+// Handle bulk delete (server-side password check)
+$deleteMessage = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all'])) {
+    // Validate CSRF token
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $deleteMessage = '<div class="delete-msg error">Invalid CSRF token.</div>';
+    } elseif (!isset($_POST['password']) || $_POST['password'] !== BULK_DELETE_PASSWORD) {
+        $deleteMessage = '<div class="delete-msg error">Incorrect password.</div>';
+    } else {
+        $deleted = 0;
+        if (is_dir($dir)) {
+            $dh = opendir($dir);
+            if ($dh) {
+                while (($file = readdir($dh)) !== false) {
+                    $filePath = $dir . '/' . $file;
+                    if (is_file($filePath)) {
+                        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                            if (unlink($filePath)) {
+                                $deleted++;
+                            }
+                        }
+                    }
+                }
+                closedir($dh);
+            }
+        }
+        $deleteMessage = '<div class="delete-msg success">Deleted ' . $deleted . ' images. Reloading page after 3s...</div>';
+        // Regenerate CSRF token after successful action
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
+        // Reload page after 3s second
+        echo '<script>setTimeout(function(){ window.location.href = "stats.php"; }, 3000);</script>';
+    }
+}
+
+// Scan uploads directory
 $totalFiles = 0;
 $totalSize = 0;
 $imagesPage = [];
@@ -21,12 +74,11 @@ if (is_dir($dir)) {
                     $totalFiles++;
                     $size = filesize($filePath);
                     $totalSize += $size;
-                    // Chỉ lưu file thuộc trang hiện tại
                     if ($currentIndex >= $start && count($imagesPage) < $perPage) {
                         $imagesPage[] = [
                             'name' => $file,
                             'size' => $size,
-                            'url' => 'uploads/' . $file
+                            'url'  => 'uploads/' . $file,
                         ];
                     }
                     $currentIndex++;
@@ -36,6 +88,7 @@ if (is_dir($dir)) {
         closedir($dh);
     }
 }
+
 function formatSize($bytes)
 {
     if ($bytes < 1024) return $bytes . ' B';
@@ -43,10 +96,11 @@ function formatSize($bytes)
     if ($bytes < 1024 * 1024 * 1024) return round($bytes / 1024 / 1024, 2) . ' MB';
     return round($bytes / 1024 / 1024 / 1024, 2) . ' GB';
 }
+
 $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 
 <head>
     <meta charset="utf-8">
@@ -84,6 +138,7 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
             display: flex;
             gap: 2.5rem;
             justify-content: center;
+            list-style: none;
         }
 
         .stats-list li {
@@ -146,6 +201,151 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
             box-shadow: 0 2px 8px #eee;
         }
 
+        /* Bulk delete */
+        .bulk-delete-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .btn-delete-all {
+            background: #f5576c;
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px #eee;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete-all:hover {
+            background: #e04458;
+            transform: translateY(-1px);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.25);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            background: #fff;
+            padding: 2rem 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(118, 75, 162, 0.3);
+            max-width: 350px;
+            margin: auto;
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #764ba2;
+            margin-bottom: 1rem;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-error {
+            color: #f5576c;
+            font-size: 0.98rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .btn-confirm {
+            background: #764ba2;
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #eee;
+            color: #764ba2;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        /* Delete messages */
+        .delete-msg {
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+        }
+
+        .delete-msg.error {
+            color: #f5576c;
+            background: #fff5f5;
+        }
+
+        .delete-msg.success {
+            color: #48bb78;
+            background: #f0fff4;
+        }
+
+        /* Pagination */
+        .pagination {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .page-link {
+            display: inline-block;
+            margin: 0 6px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 2px 8px #eee;
+            transition: all 0.3s ease;
+        }
+
+        .page-link--default {
+            background: #f8f8fc;
+            color: #764ba2;
+        }
+
+        .page-link--active {
+            background: #764ba2;
+            color: #fff;
+        }
+
+        .page-ellipsis {
+            margin: 0 6px;
+            color: #aaa;
+        }
+
         @media (max-width: 700px) {
             .stats-box {
                 padding: 1rem;
@@ -175,70 +375,40 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
             <li><b>Total images:</b> <?php echo $totalFiles; ?></li>
             <li><b>Total size:</b> <?php echo formatSize($totalSize); ?></li>
         </ul>
+
+        <?php echo $deleteMessage; ?>
+
         <?php if ($totalFiles > 0) { ?>
-            <form id="bulkDeleteForm" method="post" style="text-align:center; margin-bottom:2rem;" autocomplete="off" onsubmit="return false;">
-                <button type="button" id="bulkDeleteBtn" style="background:#f5576c; color:#fff; font-weight:600; border:none; border-radius:8px; padding:0.75rem 2rem; font-size:1rem; box-shadow:0 2px 8px #eee; cursor:pointer;">Delete All Images</button>
-            </form>
-            <div id="passwordModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:9999; align-items:center; justify-content:center;">
-                <div style="background:#fff; padding:2rem 2.5rem; border-radius:16px; box-shadow:0 8px 32px #764ba2; max-width:350px; margin:auto; text-align:center;">
-                    <div style="font-size:1.2rem; font-weight:600; color:#764ba2; margin-bottom:1rem;">Enter password to delete all images</div>
-                    <input type="password" id="deletePassword" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid #eee; font-size:1rem; margin-bottom:1rem;" placeholder="Password" autocomplete="off">
-                    <div id="passwordError" style="color:#f5576c; font-size:0.98rem; margin-bottom:1rem; display:none;"></div>
-                    <button id="confirmDeleteBtn" style="background:#764ba2; color:#fff; font-weight:600; border:none; border-radius:8px; padding:0.75rem 2rem; font-size:1rem; margin-right:8px; cursor:pointer;">Confirm</button>
-                    <button id="cancelDeleteBtn" style="background:#eee; color:#764ba2; font-weight:600; border:none; border-radius:8px; padding:0.75rem 2rem; font-size:1rem; cursor:pointer;">Cancel</button>
+            <div class="bulk-delete-section">
+                <button type="button" id="bulkDeleteBtn" class="btn-delete-all">Delete All Images</button>
+            </div>
+
+            <!-- Password modal -->
+            <div class="modal-overlay" id="passwordModal">
+                <div class="modal-box">
+                    <div class="modal-title">Enter password to delete all images</div>
+                    <form id="bulkDeleteForm" method="post" action="stats.php">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="delete_all" value="1">
+                        <input type="password" name="password" id="deletePassword" class="modal-input" placeholder="Password" autocomplete="off">
+                        <div class="modal-error" id="passwordError"></div>
+                        <button type="submit" class="btn-confirm">Confirm</button>
+                        <button type="button" id="cancelDeleteBtn" class="btn-cancel">Cancel</button>
+                    </form>
                 </div>
             </div>
+
             <script>
-                // Password for bulk delete (change as needed)
-                const BULK_DELETE_PASSWORD = 'admin2025';
-                document.getElementById('bulkDeleteBtn').onclick = function() {
+                document.getElementById('bulkDeleteBtn').onclick = function () {
                     document.getElementById('passwordModal').style.display = 'flex';
                     document.getElementById('deletePassword').value = '';
                     document.getElementById('passwordError').style.display = 'none';
                 };
-                document.getElementById('cancelDeleteBtn').onclick = function() {
+                document.getElementById('cancelDeleteBtn').onclick = function () {
                     document.getElementById('passwordModal').style.display = 'none';
                 };
-                document.getElementById('confirmDeleteBtn').onclick = function() {
-                    var pass = document.getElementById('deletePassword').value;
-                    if (pass !== BULK_DELETE_PASSWORD) {
-                        document.getElementById('passwordError').innerText = 'Incorrect password!';
-                        document.getElementById('passwordError').style.display = 'block';
-                        return;
-                    }
-                    // Submit form via JS
-                    var form = document.getElementById('bulkDeleteForm');
-                    var input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'delete_all';
-                    input.value = '1';
-                    form.appendChild(input);
-                    form.submit();
-                    document.getElementById('passwordModal').style.display = 'none';
-                };
-                document.getElementById('deletePassword').addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') document.getElementById('confirmDeleteBtn').click();
-                });
             </script>
-            <?php
-            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all'])) {
-                $deleted = 0;
-                $dh = opendir($dir);
-                if ($dh) {
-                    while (($file = readdir($dh)) !== false) {
-                        $filePath = $dir . '/' . $file;
-                        if (is_file($filePath)) {
-                            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                                if (unlink($filePath)) $deleted++;
-                            }
-                        }
-                    }
-                    closedir($dh);
-                }
-                echo '<div style="color:#f5576c; font-weight:600; text-align:center; margin-bottom:1rem;">Deleted ' . $deleted . ' images. Please refresh the page.</div>';
-            }
-            ?>
+
             <table class="images-table">
                 <thead>
                     <tr>
@@ -259,22 +429,25 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
                     <?php } ?>
                 </tbody>
             </table>
+
             <?php if ($totalPages > 1) { ?>
-                <div style="margin:2rem 0; text-align:center;">
+                <div class="pagination">
                     <?php
-                    $maxLinks = 1; // số link hiển thị tối đa gần trang hiện tại
+                    $maxLinks = 1;
                     $startPage = max(1, $page - $maxLinks);
                     $endPage = min($totalPages, $page + $maxLinks);
+
                     if ($startPage > 1) {
-                        echo '<a href="?page=1" style="display:inline-block; margin:0 6px; padding:8px 16px; border-radius:6px; background:#f8f8fc; color:#764ba2; font-weight:600; text-decoration:none; box-shadow:0 2px 8px #eee;">1</a>';
-                        if ($startPage > 2) echo '<span style="margin:0 6px; color:#aaa;">...</span>';
+                        echo '<a href="?page=1" class="page-link page-link--default">1</a>';
+                        if ($startPage > 2) echo '<span class="page-ellipsis">...</span>';
                     }
                     for ($p = $startPage; $p <= $endPage; $p++) {
-                        echo '<a href="?page=' . $p . '" style="display:inline-block; margin:0 6px; padding:8px 16px; border-radius:6px; background:' . ($p == $page ? '#764ba2' : '#f8f8fc') . '; color:' . ($p == $page ? '#fff' : '#764ba2') . '; font-weight:600; text-decoration:none; box-shadow:0 2px 8px #eee;">' . $p . '</a>';
+                        $activeClass = ($p == $page) ? 'page-link--active' : 'page-link--default';
+                        echo '<a href="?page=' . $p . '" class="page-link ' . $activeClass . '">' . $p . '</a>';
                     }
                     if ($endPage < $totalPages) {
-                        if ($endPage < $totalPages - 1) echo '<span style="margin:0 6px; color:#aaa;">...</span>';
-                        echo '<a href="?page=' . $totalPages . '" style="display:inline-block; margin:0 6px; padding:8px 16px; border-radius:6px; background:#f8f8fc; color:#764ba2; font-weight:600; text-decoration:none; box-shadow:0 2px 8px #eee;">' . $totalPages . '</a>';
+                        if ($endPage < $totalPages - 1) echo '<span class="page-ellipsis">...</span>';
+                        echo '<a href="?page=' . $totalPages . '" class="page-link page-link--default">' . $totalPages . '</a>';
                     }
                     ?>
                 </div>

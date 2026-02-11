@@ -1,3 +1,10 @@
+/**
+ * script.js — Frontend logic for image upload application.
+ *
+ * Handles drag & drop, click, paste upload with real-time progress,
+ * file preview, copy links (URL/BBCode/HTML/Markdown), and deletion.
+ */
+
 class FileUploadComponent {
     constructor() {
         this.uploadBox = document.getElementById("uploadBox");
@@ -12,7 +19,11 @@ class FileUploadComponent {
 
         this.files = [];
         this.maxFileSize = 10 * 1024 * 1024; // 10MB
-        this.allowedTypes = ["image/jpg", "image/jpeg", "image/png", "image/gif", "image/webp"];
+        this.allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+        // Read CSRF token from meta tag
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        this.csrfToken = csrfMeta ? csrfMeta.getAttribute("content") : "";
 
         this.init();
     }
@@ -77,27 +88,49 @@ class FileUploadComponent {
         });
     }
 
+    /**
+     * Escape HTML special characters to prevent XSS.
+     */
+    escapeHtml(text) {
+        const div = document.createElement("div");
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
     handleFiles(fileList) {
         const newFiles = Array.from(fileList);
+        const filesToUpload = [];
 
         newFiles.forEach((file) => {
             if (this.validateFile(file)) {
                 this.addFile(file);
-                const fileObj = this.files[this.files.length - 1];
-                this.uploadFileToServer(fileObj);
+                filesToUpload.push(this.files[this.files.length - 1]);
             }
         });
 
-        if (this.files.length > 0) {
+        if (filesToUpload.length > 0) {
             this.showPreview();
-            this.simulateUpload();
+            this.uploadBox.classList.add("uploading");
+
+            // Upload all new files — only once
+            let completedCount = 0;
+            const totalCount = filesToUpload.length;
+
+            filesToUpload.forEach((fileObj) => {
+                this.uploadFileToServer(fileObj).then(() => {
+                    completedCount++;
+                    if (completedCount === totalCount) {
+                        this.completeUpload();
+                    }
+                });
+            });
         }
     }
 
     validateFile(file) {
         // Check file type
         if (!this.allowedTypes.includes(file.type)) {
-            this.showError(`${file.name}: Only JPG, PNG, and GIF files are allowed.`);
+            this.showError(`${file.name}: Only JPG, PNG, GIF, and WEBP files are allowed.`);
             return false;
         }
 
@@ -135,13 +168,15 @@ class FileUploadComponent {
         fileElement.className = "file-item";
         fileElement.setAttribute("data-file-id", fileObj.id);
 
+        const escapedName = this.escapeHtml(fileObj.name);
+
         // Create preview image
         const reader = new FileReader();
         reader.onload = (e) => {
             fileElement.innerHTML = `
-                <img src="${e.target.result}" alt="${fileObj.name}" class="file-preview">
+                <img src="${e.target.result}" alt="${escapedName}" class="file-preview">
                 <div class="file-info">
-                    <div class="file-name">${fileObj.name}</div>
+                    <div class="file-name">${escapedName}</div>
                     <div class="file-size">${fileObj.size}</div>
                 </div>
                 <div class="file-status">
@@ -166,53 +201,26 @@ class FileUploadComponent {
         this.addMoreBtn.style.display = "inline-block";
     }
 
-    simulateUpload() {
-        this.uploadBox.classList.add("uploading");
-        let completedFiles = 0;
-        const totalFiles = this.files.length;
-        const uploadPromises = this.files.map((fileObj) => {
-            return this.uploadFileToServer(fileObj).then(() => {
-                completedFiles++;
-                if (completedFiles === totalFiles) {
-                    this.completeUpload();
-                }
-            });
-        });
-    }
-
     getOverallProgress() {
         if (!this.files.length) return 0;
         const total = this.files.reduce((sum, f) => sum + (f.progress || 0), 0);
         return total / this.files.length;
     }
 
-    // uploadFile(fileObj, progressCallback) {
-    //     let progress = 0;
-    //     const fileElement = document.querySelector(`[data-file-id="${fileObj.id}"]`);
-
-    //     const uploadInterval = setInterval(() => {
-    //         progress += Math.random() * 15;
-    //         if (progress >= 100) {
-    //             progress = 100;
-    //             clearInterval(uploadInterval);
-
-    //             fileObj.status = "success";
-    //             const statusIcon = fileElement.querySelector(".status-icon");
-    //             statusIcon.className = "status-icon status-success";
-    //             statusIcon.textContent = "✓";
-    //         }
-
-    //         progressCallback(progress);
-    //     }, 100 + Math.random() * 200);
-    // }
-
     async uploadFileToServer(fileObj) {
         const formData = new FormData();
         formData.append("file", fileObj.file);
         const fileElement = document.querySelector(`[data-file-id="${fileObj.id}"]`);
+
         return new Promise((resolve) => {
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "upload.php", true);
+
+            // Send CSRF token in header
+            if (this.csrfToken) {
+                xhr.setRequestHeader("X-CSRF-Token", this.csrfToken);
+            }
+
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = Math.round((e.loaded / e.total) * 100);
@@ -225,6 +233,7 @@ class FileUploadComponent {
                     this.updateProgress(this.getOverallProgress());
                 }
             };
+
             xhr.onload = () => {
                 let result = {};
                 try {
@@ -252,6 +261,7 @@ class FileUploadComponent {
                 }
                 resolve();
             };
+
             xhr.onerror = () => {
                 fileObj.status = "error";
                 if (fileElement) {
@@ -262,6 +272,7 @@ class FileUploadComponent {
                 this.showError("Upload failed");
                 resolve();
             };
+
             xhr.send(formData);
         });
     }
@@ -272,7 +283,8 @@ class FileUploadComponent {
             const infoDiv = fileElement.querySelector(".file-info");
             const urlDiv = document.createElement("div");
             urlDiv.className = "file-url";
-            urlDiv.innerHTML = `<a href="${fileObj.url}" target="_blank">View file</a>`;
+            const escapedUrl = this.escapeHtml(fileObj.url);
+            urlDiv.innerHTML = `<a href="${escapedUrl}" target="_blank">View file</a>`;
             infoDiv.appendChild(urlDiv);
         }
     }
@@ -304,26 +316,20 @@ class FileUploadComponent {
     }
 
     startNewUpload() {
-        // Reset all states
         this.files = [];
-
-        // Clear files list
         this.filesList.innerHTML = "";
 
-        // Reset displays
         this.uploadComplete.style.display = "none";
         this.uploadBox.style.display = "block";
         this.uploadBox.classList.remove("uploading", "success");
         this.filesPreview.classList.remove("show");
         this.addMoreBtn.style.display = "none";
 
-        // Reset progress
         const progressBar = document.querySelector(".progress-bar");
         const progressText = document.querySelector(".progress-text");
         progressBar.style.strokeDashoffset = "157";
         progressText.textContent = "0%";
 
-        // Re-setup file input
         this.fileInput.value = "";
     }
 
@@ -342,12 +348,10 @@ class FileUploadComponent {
     }
 
     viewUploadedFiles() {
-        // Show the uploaded files by hiding complete screen and showing files
         this.uploadComplete.style.display = "none";
         this.filesPreview.classList.add("show");
         this.addMoreBtn.style.display = "inline-block";
 
-        // Update preview title
         const previewTitle = this.filesPreview.querySelector(".preview-title");
         previewTitle.textContent = "Uploaded Files";
     }
@@ -363,42 +367,50 @@ class FileUploadComponent {
     }
 
     updateUploadedUrlList() {
-        // Hiển thị lại danh sách url sau khi xoá hoặc upload
         const urlListDiv = this.uploadComplete.querySelector(".uploaded-url-list");
         if (urlListDiv) urlListDiv.remove();
+
         const div = document.createElement("div");
         div.className = "uploaded-url-list";
         div.style.marginTop = "24px";
         div.style.padding = "8px 0";
         div.style.borderTop = "1px solid #eee";
+
         const origin = window.location.origin + "/";
+
         this.files.forEach((fileObj, idx) => {
             if (fileObj.url) {
-                const fullUrl = fileObj.url.startsWith("http") ? fileObj.url : origin + fileObj.url.replace(/^\/+/, "");
+                const fullUrl = fileObj.url.startsWith("http")
+                    ? fileObj.url
+                    : origin + fileObj.url.replace(/^\/+/, "");
+                const escapedUrl = this.escapeHtml(fullUrl);
+
                 div.innerHTML += `
                     <div style="margin-bottom:24px; background:transparent; border-radius:8px; box-shadow:0 2px 8px #eee; padding:16px;">
                         <div style="font-weight:600; margin-bottom:8px; color:#333;">Image ${idx + 1}</div>
-                        <div style="margin-bottom:15px"><b>URL:</b> <span class="copy-text" data-copy="${fullUrl}" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px; text-decoration:none;">${fullUrl}</span></div>
-                        <div style="margin-bottom:15px"><b>BBCode:</b> <span class="copy-text" data-copy="[img]${fullUrl}[/img]" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px;">[img]${fullUrl}[/img]</span></div>
-                        <div style="margin-bottom:15px"><b>HTML:</b> <span class="copy-text" data-copy="<img src='${fullUrl}' alt='image'>" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px;">&lt;img src='${fullUrl}' alt='image'&gt;</span></div>
-                        <div style="margin-bottom:15px"><b>Markdown:</b> <span class="copy-text" data-copy="![](${fullUrl})" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px;">![](${fullUrl})</span></div>
+                        <div style="margin-bottom:15px"><b>URL:</b> <span class="copy-text" data-copy="${escapedUrl}" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px; text-decoration:none;">${escapedUrl}</span></div>
+                        <div style="margin-bottom:15px"><b>BBCode:</b> <span class="copy-text" data-copy="[img]${escapedUrl}[/img]" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px;">[img]${escapedUrl}[/img]</span></div>
+                        <div style="margin-bottom:15px"><b>HTML:</b> <span class="copy-text" data-copy="&lt;img src='${escapedUrl}' alt='image'&gt;" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px;">&lt;img src='${escapedUrl}' alt='image'&gt;</span></div>
+                        <div style="margin-bottom:15px"><b>Markdown:</b> <span class="copy-text" data-copy="![](${escapedUrl})" style="cursor:pointer; background:#48bb78; padding:2px 6px; border-radius:4px;">![](${escapedUrl})</span></div>
                     </div>
                 `;
             }
         });
+
         this.uploadComplete.appendChild(div);
 
-        // Thêm sự kiện copy cho các text
+        // Attach copy event listeners
         setTimeout(() => {
             document.querySelectorAll(".copy-text").forEach((el) => {
                 el.addEventListener("click", function () {
                     const val = this.getAttribute("data-copy");
                     navigator.clipboard.writeText(val).then(() => {
+                        const originalText = val;
                         el.style.background = "#d4edda";
                         el.style.color = "#155724";
                         el.textContent = "Copied!";
                         setTimeout(() => {
-                            el.textContent = val;
+                            el.textContent = originalText;
                             el.style.background = "";
                             el.style.color = "";
                         }, 1200);
@@ -409,18 +421,20 @@ class FileUploadComponent {
     }
 
     removeFile(fileId) {
-        // Tìm fileObj để lấy url file
         const fileObj = this.files.find((f) => f.id == fileId);
-        // Gửi yêu cầu xoá file trên server nếu có url
+
+        // Send delete request with CSRF token
         if (fileObj && fileObj.url) {
             fetch("delete.php", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": this.csrfToken,
+                },
                 body: JSON.stringify({ url: fileObj.url }),
             });
         }
 
-        // Xoá khỏi danh sách files
         this.files = this.files.filter((f) => f.id != fileId);
         const fileElement = document.querySelector(`[data-file-id="${fileId}"]`);
 
@@ -429,22 +443,21 @@ class FileUploadComponent {
             setTimeout(() => {
                 fileElement.remove();
 
-                // Nếu không còn file nào, ẩn preview, nút thêm, trạng thái upload
                 if (this.files.length === 0) {
                     this.filesPreview.classList.remove("show");
                     this.addMoreBtn.style.display = "none";
                     this.uploadBox.classList.remove("uploading");
 
-                    // Nếu đang ở màn hình uploadComplete, xoá danh sách url và về giao diện upload file
                     if (this.uploadComplete.style.display === "block") {
                         const urlListDiv = this.uploadComplete.querySelector(".uploaded-url-list");
                         if (urlListDiv) urlListDiv.remove();
                         const completeSubtitle = this.uploadComplete.querySelector(".complete-subtitle");
                         if (completeSubtitle) completeSubtitle.textContent = "No files left.";
-                        // Quay về giao diện upload file
+
                         this.uploadComplete.style.display = "none";
                         this.uploadBox.style.display = "block";
                         this.uploadBox.classList.remove("uploading", "success");
+
                         const progressBar = document.querySelector(".progress-bar");
                         const progressText = document.querySelector(".progress-text");
                         if (progressBar) progressBar.style.strokeDashoffset = "157";
@@ -452,56 +465,18 @@ class FileUploadComponent {
                         this.fileInput.value = "";
                     }
                 } else {
-                    // Nếu đang ở màn hình uploadComplete, cập nhật lại danh sách url
                     if (this.uploadComplete.style.display === "block") {
                         this.updateUploadedUrlList();
                         const completeSubtitle = this.uploadComplete.querySelector(".complete-subtitle");
-                        if (completeSubtitle) completeSubtitle.textContent = `${this.files.length} file(s) uploaded successfully`;
+                        if (completeSubtitle) {
+                            completeSubtitle.textContent = `${this.files.length} file(s) uploaded successfully`;
+                        }
                     }
                 }
             }, 300);
         }
     }
 }
-
-// Add slide animations for notifications
-const style = document.createElement("style");
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-    }
-`;
-
-document.head.appendChild(style);
 
 // Initialize the component
 let fileUpload;

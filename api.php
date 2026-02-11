@@ -5,7 +5,7 @@
  * Endpoints:
  *   POST /api.php?action=upload
  *      Content-Type: multipart/form-data
- *      Field: `files[]` (nhiều file) HOẶC `file` (1 file)
+ *      Field: `files[]` (nhiều file), `file` (1 file), hoặc bất kỳ field name nào
  *
  *   POST /api.php?action=delete
  *      Content-Type: application/json
@@ -32,31 +32,41 @@ function jsonResponse(int $statusCode, array $data): void
 }
 
 /**
- * Chuẩn hoá $_FILES thành mảng các file objects dễ xử lý.
- * Hỗ trợ cả `files[]` (đa số) và `file` (đơn lẻ).
+ * Chuẩn hoá $_FILES thành mảng phẳng các file objects dễ xử lý.
+ *
+ * Hỗ trợ mọi cách gửi:
+ *   - files[]  → PHP parse thành array (multi)
+ *   - files    → PHP chỉ giữ file cuối (scalar) — nhưng ta scan tất cả fields
+ *   - file     → scalar đơn lẻ
+ *   - Bất kỳ field name nào khác
  */
-function normalizeFiles(array $files): array
+function collectAllUploadedFiles(): array
 {
     $normalized = [];
-    
-    // Trường hợp 1: $_FILES['files'] (multiple file upload)
-    // Structure: ['name' => [0 => 'a.jpg', 1 => 'b.jpg'], 'type' => [...], ...]
-    if (isset($files['name']) && is_array($files['name'])) {
-        foreach ($files['name'] as $idx => $name) {
-            $normalized[] = [
-                'name'     => $name,
-                'type'     => $files['type'][$idx],
-                'tmp_name' => $files['tmp_name'][$idx],
-                'error'    => $files['error'][$idx],
-                'size'     => $files['size'][$idx],
-            ];
+
+    foreach ($_FILES as $fieldName => $entry) {
+        // Case 1: field dạng array (files[] / images[] / ...)
+        if (is_array($entry['name'])) {
+            foreach ($entry['name'] as $idx => $name) {
+                if ($entry['error'][$idx] === UPLOAD_ERR_NO_FILE) {
+                    continue; // slot rỗng, bỏ qua
+                }
+                $normalized[] = [
+                    'name'     => $name,
+                    'type'     => $entry['type'][$idx],
+                    'tmp_name' => $entry['tmp_name'][$idx],
+                    'error'    => $entry['error'][$idx],
+                    'size'     => $entry['size'][$idx],
+                ];
+            }
         }
-    } 
-    // Trường hợp 2: $_FILES['file'] (single file upload)
-    // Structure: ['name' => 'a.jpg', 'type' => 'image/jpeg', ...]
-    else {
-        // Đảm bảo object có đủ key chuẩn
-        $normalized[] = $files;
+        // Case 2: field scalar (file / files without brackets)
+        else {
+            if ($entry['error'] === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $normalized[] = $entry;
+        }
     }
 
     return $normalized;
@@ -87,15 +97,13 @@ switch ($action) {
 
 function handleUpload(): void
 {
-    // Tìm field upload hợp lệ
-    // Ưu tiên 'files' (chuẩn multiple), fallback sang 'file' (legacy single)
-    $inputFiles = $_FILES['files'] ?? ($_FILES['file'] ?? null);
+    // Scan tất cả $_FILES fields — không phụ thuộc tên field
+    $fileList = collectAllUploadedFiles();
 
-    if (!$inputFiles) {
-        jsonResponse(400, ['success' => false, 'error' => 'No files provided. Use field "files[]" or "file"']);
+    if (empty($fileList)) {
+        jsonResponse(400, ['success' => false, 'error' => 'No files provided. Use field "files[]", "file", or any field name']);
     }
 
-    $fileList = normalizeFiles($inputFiles);
     $results = [];
 
     // Lấy URL base

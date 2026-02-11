@@ -3,13 +3,13 @@
  * api.php — REST API cho upload và xoá (hỗ trợ single/bulk).
  *
  * Endpoints:
- *   POST /api.php?action=upload  — Upload 1 hoặc nhiều ảnh
+ *   POST /api.php?action=upload
  *      Content-Type: multipart/form-data
  *      Field: `files[]` (nhiều file) HOẶC `file` (1 file)
  *
- *   POST /api.php?action=delete  — Xoá 1 hoặc nhiều ảnh
+ *   POST /api.php?action=delete
  *      Content-Type: application/json
- *      Body: { "names": ["img1.jpg", "img2.jpg"] } HOẶC { "name": "img1.jpg" }
+ *      Body: { "names": ["img1.jpg", "img2.jpg"] }
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -31,14 +31,17 @@ function jsonResponse(int $statusCode, array $data): void
     exit;
 }
 
-
-
-// Chuẩn hoá $_FILES thành mảng các file objects dễ xử lý
+/**
+ * Chuẩn hoá $_FILES thành mảng các file objects dễ xử lý.
+ * Hỗ trợ cả `files[]` (đa số) và `file` (đơn lẻ).
+ */
 function normalizeFiles(array $files): array
 {
     $normalized = [];
+    
+    // Trường hợp 1: $_FILES['files'] (multiple file upload)
+    // Structure: ['name' => [0 => 'a.jpg', 1 => 'b.jpg'], 'type' => [...], ...]
     if (isset($files['name']) && is_array($files['name'])) {
-        // Dạng files[] upload nhiều file
         foreach ($files['name'] as $idx => $name) {
             $normalized[] = [
                 'name'     => $name,
@@ -48,10 +51,14 @@ function normalizeFiles(array $files): array
                 'size'     => $files['size'][$idx],
             ];
         }
-    } else {
-        // Dạng file upload 1 file
+    } 
+    // Trường hợp 2: $_FILES['file'] (single file upload)
+    // Structure: ['name' => 'a.jpg', 'type' => 'image/jpeg', ...]
+    else {
+        // Đảm bảo object có đủ key chuẩn
         $normalized[] = $files;
     }
+
     return $normalized;
 }
 
@@ -71,7 +78,7 @@ switch ($action) {
         break;
     case 'delete':
         handleDelete();
-        break;
+        break; 
     default:
         jsonResponse(400, ['success' => false, 'error' => 'Unknown action']);
 }
@@ -80,7 +87,8 @@ switch ($action) {
 
 function handleUpload(): void
 {
-    // Hỗ trợ cả `files` (số nhiều) và `file` (số ít)
+    // Tìm field upload hợp lệ
+    // Ưu tiên 'files' (chuẩn multiple), fallback sang 'file' (legacy single)
     $inputFiles = $_FILES['files'] ?? ($_FILES['file'] ?? null);
 
     if (!$inputFiles) {
@@ -89,62 +97,57 @@ function handleUpload(): void
 
     $fileList = normalizeFiles($inputFiles);
     $results = [];
-    $hasError = false;
 
     // Lấy URL base
-    $baseUrl = rtrim((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
-        . '://' . $_SERVER['HTTP_HOST']
-        . dirname($_SERVER['SCRIPT_NAME']), '/');
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $baseUrl = $protocol . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']);
+    // Xoá slash cuối nếu có để nối chuỗi cho đẹp
+    $baseUrl = rtrim($baseUrl, '/');
 
     foreach ($fileList as $file) {
-        // Check từng file
+        // Init result object
+        $fileResult = [
+            'original_name' => $file['name'],
+            'status'        => 'error', 
+            'error'         => ''
+        ];
+
+        // 1. Check lỗi upload hệ thống
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            $results[] = [
-                'name'   => $file['name'],
-                'status' => 'error',
-                'error'  => 'Upload error code: ' . $file['error']
-            ];
-            $hasError = true;
+            $fileResult['error'] = 'Upload error code: ' . $file['error'];
+            $results[] = $fileResult;
             continue;
         }
 
+        // 2. Check kích thước
         if ($file['size'] > MAX_FILE_SIZE) {
-            $results[] = [
-                'name'   => $file['name'],
-                'status' => 'error',
-                'error'  => 'File too large'
-            ];
-            $hasError = true;
+            $fileResult['error'] = 'File too large (Max: ' . (MAX_FILE_SIZE / 1024 / 1024) . 'MB)';
+            $results[] = $fileResult;
             continue;
         }
 
+        // 3. Check MIME type (dùng finfo)
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $detectedMime = $finfo->file($file['tmp_name']);
 
         if (!isset(ALLOWED_MIME_TYPES[$detectedMime])) {
-            $results[] = [
-                'name'   => $file['name'],
-                'status' => 'error',
-                'error'  => 'Invalid file type'
-            ];
-            $hasError = true;
+            $fileResult['error'] = 'Invalid file type (' . $detectedMime . ')';
+            $results[] = $fileResult;
             continue;
         }
 
+        // 4. Check ảnh thật sự (getimagesize)
         $imageInfo = getimagesize($file['tmp_name']);
         if ($imageInfo === false) {
-            $results[] = [
-                'name'   => $file['name'],
-                'status' => 'error',
-                'error'  => 'Not a valid image'
-            ];
-            $hasError = true;
+            $fileResult['error'] = 'Not a valid image file';
+            $results[] = $fileResult;
             continue;
         }
 
-        // Save
+        // 5. Xử lý tên file và lưu
         $allowedExtensions = ALLOWED_MIME_TYPES[$detectedMime];
         $originalExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        // Nếu ext gốc nằm trong list cho phép thì giữ nguyên, ngược lại lấy cái đầu tiên
         $finalExt = in_array($originalExt, $allowedExtensions) ? $originalExt : $allowedExtensions[0];
 
         $savedName = generateUniqueFileName($file['name'], $finalExt);
@@ -152,32 +155,23 @@ function handleUpload(): void
 
         if (move_uploaded_file($file['tmp_name'], $targetFile)) {
             $results[] = [
-                'name'   => $savedName,
-                'original_name' => $file['name'],
-                'status' => 'success',
-                'url'    => $baseUrl . '/uploads/' . $savedName,
-                'size'   => $file['size'],
-                'mime'   => $detectedMime,
-                'width'  => $imageInfo[0],
-                'height' => $imageInfo[1],
+                'name'          => $savedName,          // Tên file mới trên disk
+                'original_name' => $file['name'],       // Tên gốc user up lên
+                'status'        => 'success',
+                'url'           => $baseUrl . '/uploads/' . $savedName,
+                'size'          => $file['size'],
+                'mime'          => $detectedMime,
+                'width'         => $imageInfo[0],
+                'height'        => $imageInfo[1],
             ];
         } else {
-            $results[] = [
-                'name'   => $file['name'],
-                'status' => 'error',
-                'error'  => 'Failed to save file'
-            ];
-            $hasError = true;
+            $fileResult['error'] = 'Failed to save file to disk';
+            $results[] = $fileResult;
         }
     }
 
-    // Nếu chỉ upload 1 file và thành công, trả thẳng object (backward compatibility + tiện dụng)
-    // Nhưng user yêu cầu support "lưu ý có thể upload nhiều ảnh... response api trả lại phải chuẩn"
-    // -> Nên trả về mảng kết quả thì đồng nhất hơn. 
-    // Tuy nhiên để dễ dùng, ta trả về structure: { success: bool, data: [ ... ] }
-
     jsonResponse(200, [
-        'success' => true, // Luôn true nếu request xử lý xong, client tự check từng item trong data
+        'success' => true,
         'data'    => $results
     ]);
 }
@@ -185,12 +179,16 @@ function handleUpload(): void
 function handleDelete(): void
 {
     $input = json_decode(file_get_contents('php://input'), true);
+    
+    if (!$input) {
+        // Fallback: Check $_POST nếu gọi form-data delete (ít dùng nhưng phòng hờ)
+        $input = $_POST;
+    }
 
-    // Hỗ trợ `names` (mảng) hoặc `name` (đơn lẻ)
     $names = $input['names'] ?? (isset($input['name']) ? [$input['name']] : []);
 
     if (empty($names)) {
-        jsonResponse(400, ['success' => false, 'error' => 'No image names provided. Use field "names[]" or "name"']);
+        jsonResponse(400, ['success' => false, 'error' => 'No image names provided.']);
     }
 
     $results = [];
@@ -198,42 +196,28 @@ function handleDelete(): void
     foreach ($names as $name) {
         if (empty($name)) continue;
         
-        $imageName = basename($name); // Sanitize path
+        $imageName = basename($name); // Ngăn chặn directory traversal
         $filePath = UPLOAD_DIR . $imageName;
 
-        // Check extension
+        // Check path traversal & extension (bảo mật)
         $ext = strtolower(pathinfo($imageName, PATHINFO_EXTENSION));
         $allExtensions = array_merge(...array_values(ALLOWED_MIME_TYPES));
         
+        // Chỉ cho phép xoá file thuộc extension cho phép (tránh xoá bậy file .php hệ thống)
         if (!in_array($ext, $allExtensions)) {
-            $results[] = [
-                'name'   => $imageName,
-                'status' => 'error',
-                'error'  => 'Invalid extension'
-            ];
+            $results[] = ['name' => $imageName, 'status' => 'error', 'error' => 'Invalid extension'];
             continue;
         }
 
         if (!is_file($filePath)) {
-            $results[] = [
-                'name'   => $imageName,
-                'status' => 'error',
-                'error'  => 'File not found'
-            ];
+            $results[] = ['name' => $imageName, 'status' => 'error', 'error' => 'File not found'];
             continue;
         }
 
         if (unlink($filePath)) {
-            $results[] = [
-                'name'   => $imageName,
-                'status' => 'success'
-            ];
+            $results[] = ['name' => $imageName, 'status' => 'success'];
         } else {
-            $results[] = [
-                'name'   => $imageName,
-                'status' => 'error',
-                'error'  => 'Delete failed'
-            ];
+            $results[] = ['name' => $imageName, 'status' => 'error', 'error' => 'Delete failed'];
         }
     }
 

@@ -31,19 +31,7 @@ function jsonResponse(int $statusCode, array $data): void
     exit;
 }
 
-function sanitizeFileName(string $fileName): string
-{
-    if (function_exists('transliterator_transliterate')) {
-        $asciiName = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9._-] remove', $fileName);
-    } else {
-        $asciiName = iconv('UTF-8', 'ASCII//TRANSLIT', $fileName);
-        if ($asciiName === false) {
-            $asciiName = $fileName;
-        }
-    }
-    $asciiName = str_replace(' ', '-', $asciiName);
-    return preg_replace('/[^a-zA-Z0-9\-_.]/', '', $asciiName);
-}
+
 
 // Chuẩn hoá $_FILES thành mảng các file objects dễ xử lý
 function normalizeFiles(array $files): array
@@ -155,17 +143,11 @@ function handleUpload(): void
         }
 
         // Save
-        $asciiName = sanitizeFileName(basename($file['name']));
         $allowedExtensions = ALLOWED_MIME_TYPES[$detectedMime];
-        $userExt = strtolower(pathinfo($asciiName, PATHINFO_EXTENSION));
-        $safeExt = in_array($userExt, $allowedExtensions) ? $userExt : $allowedExtensions[0];
-        
-        $base = pathinfo($asciiName, PATHINFO_FILENAME);
-        if (empty($base)) $base = 'file';
+        $originalExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $finalExt = in_array($originalExt, $allowedExtensions) ? $originalExt : $allowedExtensions[0];
 
-        $safeName = strtolower($base) . '.' . $safeExt;
-        $safeName = str_replace(['../', './', '/'], '', $safeName);
-        $savedName = uniqid() . '_' . $safeName;
+        $savedName = generateUniqueFileName($file['name'], $finalExt);
         $targetFile = UPLOAD_DIR . $savedName;
 
         if (move_uploaded_file($file['tmp_name'], $targetFile)) {

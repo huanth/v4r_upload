@@ -62,33 +62,13 @@ if ($imageInfo === false) {
     exit;
 }
 
-// Sanitize file name
-$fileName = basename($file["name"]);
-if (function_exists('transliterator_transliterate')) {
-    $asciiName = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9._-] remove', $fileName);
-} else {
-    $asciiName = iconv('UTF-8', 'ASCII//TRANSLIT', $fileName);
-    if ($asciiName === false) {
-        $asciiName = $fileName;
-    }
-}
-
-$asciiName = str_replace(' ', '-', $asciiName);
-$asciiName = preg_replace('/[^a-zA-Z0-9\-_.]/', '', $asciiName);
-
-// Use detected MIME to determine safe extension (ignore user-provided extension)
+// Use detected MIME to determine safe extension
 $allowedExtensions = ALLOWED_MIME_TYPES[$detectedMime];
-$userExt = strtolower(pathinfo($asciiName, PATHINFO_EXTENSION));
-$safeExt = in_array($userExt, $allowedExtensions) ? $userExt : $allowedExtensions[0];
+$originalExt = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
+$finalExt = in_array($originalExt, $allowedExtensions) ? $originalExt : $allowedExtensions[0];
 
-$base = pathinfo($asciiName, PATHINFO_FILENAME);
-if (empty($base)) {
-    $base = 'file';
-}
-
-$safeName = strtolower($base) . '.' . $safeExt;
-$safeName = str_replace(['../', './', '/'], '', $safeName);
-$targetFile = $targetDir . uniqid() . "_" . $safeName;
+$savedName = generateUniqueFileName($file["name"], $finalExt);
+$targetFile = $targetDir . $savedName;
 
 if (move_uploaded_file($file["tmp_name"], $targetFile)) {
     echo json_encode([

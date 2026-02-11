@@ -56,11 +56,19 @@ Content-Type: multipart/form-data
 
 **Field:** `files[]` (nhiều file) hoặc `file` (1 file)
 
-**cURL (upload hàng loạt):**
+> ⚠️ **Lưu ý:** Khi upload nhiều file, field **BẮT BUỘC** phải là `files[]` (có `[]`). Nếu dùng `files` (không có `[]`), PHP chỉ nhận file cuối cùng.
+
+**cURL (upload nhiều file):**
 ```bash
 curl -X POST "https://up.v4r.net/api.php?action=upload" \
   -F "files[]=@image1.jpg" \
   -F "files[]=@image2.png"
+```
+
+**cURL (upload 1 file):**
+```bash
+curl -X POST "https://up.v4r.net/api.php?action=upload" \
+  -F "file=@image1.jpg"
 ```
 
 **Response:**

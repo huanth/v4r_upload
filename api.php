@@ -5,7 +5,7 @@
  * Endpoints:
  *   POST /api.php?action=upload
  *      Content-Type: multipart/form-data
- *      Field: `files[]` (nhiều file), `file` (1 file), hoặc bất kỳ field name nào
+ *      Field: `files[]` (nhiều file — BẮT BUỘC có `[]`), `file` (1 file), hoặc bất kỳ field name nào
  *
  *   POST /api.php?action=delete
  *      Content-Type: application/json

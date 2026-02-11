@@ -109,6 +109,7 @@ session_start();
                     <span class="method">POST</span> /api.php?action=upload
                 </div>
                 <p>Upload một hoặc nhiều ảnh cùng lúc. Content-Type: <code>multipart/form-data</code>.</p>
+                <p style="background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 15px; border-radius:4px; color:#92400e;">⚠️ <strong>Lưu ý:</strong> Khi upload nhiều file, field <strong>BẮT BUỘC</strong> phải là <code>files[]</code> (có <code>[]</code>). Nếu dùng <code>files</code> (không có <code>[]</code>), PHP chỉ nhận file cuối cùng.</p>
                 
                 <h3>Tham số</h3>
                 <table>
@@ -121,7 +122,7 @@ session_start();
                     <tbody>
                         <tr>
                             <td><code>files[]</code></td>
-                            <td>Mảng các file ảnh cần upload (Hỗ trợ nhiều file).</td>
+                            <td>Mảng các file ảnh cần upload (Hỗ trợ nhiều file). <strong>Bắt buộc có <code>[]</code></strong>.</td>
                         </tr>
                         <tr>
                             <td><code>file</code></td>
@@ -130,11 +131,17 @@ session_start();
                     </tbody>
                 </table>
 
-                <h3>cURL Example</h3>
+                <h3>cURL — Upload nhiều file</h3>
                 <pre class="code-block">
 curl -X POST "https://up.v4r.net/api.php?action=upload" \
   -F "files[]=@image1.jpg" \
   -F "files[]=@image2.png"
+                </pre>
+
+                <h3>cURL — Upload 1 file</h3>
+                <pre class="code-block">
+curl -X POST "https://up.v4r.net/api.php?action=upload" \
+  -F "file=@image1.jpg"
                 </pre>
 
                 <h3>Response Thành Công</h3>

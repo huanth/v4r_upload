@@ -128,7 +128,7 @@ $csrfToken = $_SESSION['csrf_token'];
                         </svg>
                     </div>
                     <h3 class="upload-title">Drop files here, click to upload or paste image</h3>
-                    <p class="upload-subtitle">Support for single or bulk uploads. Strictly PNG, JPG, WEBP and GIF files only. Max size 10MB per file.</p>
+                    <p class="upload-subtitle">Support for single or bulk uploads. Strictly PNG, JPG, WEBP and GIF files only. Max size 100MB per file.</p>
                     <button class="upload-button" type="button">Choose Files</button>
                     <input type="file" id="fileInput" multiple accept="image/*" hidden>
                 </div>

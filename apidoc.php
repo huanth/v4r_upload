@@ -108,8 +108,9 @@ session_start();
                 <div class="endpoint">
                     <span class="method">POST</span> /api.php?action=upload
                 </div>
-                <p>Upload một hoặc nhiều ảnh cùng lúc. Content-Type: <code>multipart/form-data</code>.</p>
-                <p style="background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 15px; border-radius:4px; color:#92400e;">⚠️ <strong>Lưu ý:</strong> Khi upload nhiều file, field <strong>BẮT BUỘC</strong> phải là <code>files[]</code> (có <code>[]</code>). Nếu dùng <code>files</code> (không có <code>[]</code>), PHP chỉ nhận file cuối cùng.</p>
+                <p>Upload một hoặc nhiều ảnh cùng lúc</p>
+
+                <p style="margin: 10px 0;background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 15px; border-radius:4px; color:#92400e;">⚠️ <strong>Lưu ý:</strong> Khi upload nhiều file, field <strong>BẮT BUỘC</strong> phải là <code>files[]</code> (có <code>[]</code>). Nếu dùng <code>files</code> (không có <code>[]</code>), PHP chỉ nhận file cuối cùng.</p>
                 
                 <h3>Tham số</h3>
                 <table>

@@ -51,7 +51,6 @@ Không cần API key. Hỗ trợ CORS. Trả về JSON chuẩn với danh sách 
 
 ```
 POST /api.php?action=upload
-Content-Type: multipart/form-data
 ```
 
 **Field:** `files[]` (nhiều file) hoặc `file` (1 file)

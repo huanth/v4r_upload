@@ -5,12 +5,12 @@
 session_start();
 ?>
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Documentation | Upload Hình Ảnh Nhanh Chóng</title>
-    <meta name="description" content="Tài liệu API cho V4R Upload. Hướng dẫn tích hợp upload và xoá ảnh cho developer.">
+    <title>API Documentation | V4R Fast Image Upload</title>
+    <meta name="description" content="API documentation for V4R Upload. Integration guide for uploading and deleting images.">
     <link rel="icon" href="https://v4r.net/assets/site-image-ua62u0v5.png" type="image/x-icon">
     <link rel="stylesheet" href="./style.css">
     <style>
@@ -92,7 +92,7 @@ session_start();
                 <img src="https://v4r.net/assets/logo-tvzme3ed.png" alt="V4R.NET - Upload" class="Header-logo">
             </a>
             <div class="nav-links">
-                <a href="/">Trang chủ</a>
+                <a href="/">Home</a>
                 <a href="apidoc.php" class="active">API Doc</a>
             </div>
         </div>
@@ -101,51 +101,51 @@ session_start();
     <div class="container">
         <div class="api-container">
             <h1 class="api-title">REST API Documentation</h1>
-            <p>Tài liệu tích hợp upload và xoá ảnh (đơn & bulk) cho developer. API hỗ trợ CORS và không yêu cầu API key.</p>
+            <p>Integration guide for uploading and deleting images (single & bulk). CORS enabled. No API key required.</p>
 
             <div class="api-section">
-                <h2 class="api-subtitle">1. Upload Ảnh (Bulk Support)</h2>
+                <h2 class="api-subtitle">1. Upload Images (Bulk Support)</h2>
                 <div class="endpoint">
                     <span class="method">POST</span> /api.php?action=upload
                 </div>
-                <p>Upload một hoặc nhiều ảnh cùng lúc.</p>
+                <p>Upload one or multiple images at once.</p>
 
-                <p style="margin: 10px 0;background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 15px; border-radius:4px; color:#92400e;">⚠️ <strong>Lưu ý:</strong> Khi upload nhiều file, field <strong>BẮT BUỘC</strong> phải là <code>files[]</code> (có <code>[]</code>). Nếu dùng <code>files</code> (không có <code>[]</code>), PHP chỉ nhận file cuối cùng.</p>
+                <p style="margin: 10px 0;background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 15px; border-radius:4px; color:#92400e;">⚠️ <strong>Note:</strong> When uploading multiple files, the field name <strong>MUST</strong> be <code>files[]</code> (with <code>[]</code>). Using <code>files</code> (without <code>[]</code>) will only upload the last file.</p>
                 
-                <h3>Tham số</h3>
+                <h3>Parameters</h3>
                 <table>
                     <thead>
                         <tr>
                             <th>Field</th>
-                            <th>Mô tả</th>
+                            <th>Description</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td><code>files[]</code></td>
-                            <td>Mảng các file ảnh cần upload (Hỗ trợ nhiều file). <strong>Bắt buộc có <code>[]</code></strong>.</td>
+                            <td>Array of image files to upload (supports multiple files). <strong>Brackets <code>[]</code> required</strong>.</td>
                         </tr>
                         <tr>
                             <td><code>file</code></td>
-                            <td>File ảnh đơn lẻ (nếu chỉ upload 1 file).</td>
+                            <td>Single image file (for uploading one file only).</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <h3>cURL — Upload nhiều file</h3>
+                <h3>cURL — Multiple Files</h3>
                 <pre class="code-block">
 curl -X POST "https://up.v4r.net/api.php?action=upload" \
   -F "files[]=@image1.jpg" \
   -F "files[]=@image2.png"
                 </pre>
 
-                <h3>cURL — Upload 1 file</h3>
+                <h3>cURL — Single File</h3>
                 <pre class="code-block">
 curl -X POST "https://up.v4r.net/api.php?action=upload" \
   -F "file=@image1.jpg"
                 </pre>
 
-                <h3>Response Thành Công</h3>
+                <h3>Success Response</h3>
                 <pre class="code-block">
 {
   "success": true,
@@ -166,11 +166,11 @@ curl -X POST "https://up.v4r.net/api.php?action=upload" \
             </div>
 
             <div class="api-section">
-                <h2 class="api-subtitle">2. Xoá Ảnh (Bulk Support)</h2>
+                <h2 class="api-subtitle">2. Delete Images (Bulk Support)</h2>
                 <div class="endpoint">
                     <span class="method">POST</span> /api.php?action=delete
                 </div>
-                <p>Xoá một hoặc nhiều ảnh.</p>
+                <p>Delete one or multiple images.</p>
 
                 <h3 style="margin: 10px 0;">Body JSON</h3>
                 <pre class="code-block">
@@ -204,34 +204,34 @@ curl -X POST "https://up.v4r.net/api.php?action=delete" \
             </div>
 
             <div class="api-section">
-                <h2 class="api-subtitle">Mã Lỗi HTTP</h2>
+                <h2 class="api-subtitle">HTTP Error Codes</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>Code</th>
-                            <th>Mô tả</th>
+                            <th>Description</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>200</td>
-                            <td>Thành công (Chi tiết trong <code>data</code>)</td>
+                            <td>Success (details in <code>data</code>)</td>
                         </tr>
                         <tr>
                             <td>400</td>
-                            <td>Request thiếu tham số hoặc sai format</td>
+                            <td>Missing parameters or invalid format</td>
                         </tr>
                         <tr>
                             <td>405</td>
-                            <td>Method không đúng (Chỉ dùng POST)</td>
+                            <td>Invalid method (POST only)</td>
                         </tr>
                         <tr>
                             <td>413</td>
-                            <td>File quá lớn (>100MB)</td>
+                            <td>File too large (>100MB)</td>
                         </tr>
                         <tr>
                             <td>500</td>
-                            <td>Lỗi server nội bộ</td>
+                            <td>Internal server error</td>
                         </tr>
                     </tbody>
                 </table>

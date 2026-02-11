@@ -1,38 +1,42 @@
-# Image Upload Web App
+# Ứng Dụng Upload Hình Ảnh
 
-A simple, modern web app for uploading images (PNG, JPG, GIF, WEBP) with drag & drop, clipboard paste, and bulk upload support. Uploaded files are renamed safely and can be deleted from both UI and server.
+Ứng dụng web upload hình ảnh (PNG, JPG, GIF, WEBP) hiện đại, hỗ trợ kéo thả, dán từ clipboard và upload hàng loạt. File được đổi tên an toàn, có thể xoá từ giao diện và server.
 
-## Features
-- Drag & drop, click, or paste to upload images
-- Bulk upload support
-- File type and size validation (max 10MB)
-- Safe file renaming (slug, ASCII, no special chars)
-- Copy direct URL, BBCode, HTML, Markdown after upload
-- Delete files from UI and server
-- Responsive, modern UI
-- All invalid links redirect to homepage (via `.htaccess`)
+## Tính năng
+- Kéo thả, click hoặc dán để upload
+- Upload hàng loạt
+- Kiểm tra định dạng file và kích thước (tối đa 10MB)
+- Đổi tên file an toàn (slug, ASCII, không ký tự đặc biệt)
+- Sao chép link: URL, BBCode, HTML, Markdown
+- Xoá file từ giao diện và server
+- Giao diện responsive, hiện đại
+- Link không tồn tại tự chuyển về trang chủ (`.htaccess`)
 
-## Usage
-1. Clone/download the project to your web server (tested with Laragon/XAMPP).
-2. Make sure the `uploads/` folder is writable by the web server.
-3. Open `index.php` in your browser.
-4. Upload images by drag & drop, click, or paste.
-5. Copy links or delete files as needed.
+## Bảo mật
+- CSRF token cho tất cả request upload/xoá
+- Validate MIME type thực sự bằng `finfo` + `getimagesize`
+- Chỉ cho phép file ảnh (JPG, PNG, GIF, WEBP)
+- Tên file được sanitize và chuyển sang slug an toàn
+- Escape HTML chống XSS khi hiển thị tên file
+- Xoá hàng loạt yêu cầu mật khẩu (xác thực server-side)
+- Tất cả URL không tồn tại redirect về trang chủ
 
-## Security
-- Uploaded file names are sanitized and converted to safe slugs.
-- Only image files are allowed.
-- Deleting a file removes it from the server.
-- All non-existent URLs redirect to homepage.
+## Hướng dẫn sử dụng
+1. Clone/download dự án vào web server (Laragon/XAMPP).
+2. Đảm bảo thư mục `uploads/` có quyền ghi.
+3. Mở `index.php` trên trình duyệt.
+4. Upload ảnh bằng cách kéo thả, click hoặc dán.
+5. Sao chép link hoặc xoá file tuỳ ý.
 
-## File Structure
-- `index.php` — Main UI
-- `script.js` — Frontend logic
-- `style.css` — Styles
-- `upload.php` — Handles file upload
-- `delete.php` — Handles file deletion
-- `.htaccess` — Redirects all invalid links to homepage
-- `uploads/` — Stores uploaded images
+## Cấu trúc thư mục
+- `index.php` — Giao diện chính, tạo CSRF token
+- `script.js` — Logic frontend (upload, preview, copy, xoá)
+- `style.css` — Giao diện CSS
+- `upload.php` — Xử lý upload file (validate MIME, CSRF)
+- `delete.php` — Xử lý xoá file (CSRF, whitelist extension)
+- `stats.php` — Thống kê và quản lý ảnh (xoá hàng loạt)
+- `.htaccess` — Redirect link không tồn tại về trang chủ
+- `uploads/` — Thư mục lưu ảnh
 
-## License
+## Giấy phép
 MIT

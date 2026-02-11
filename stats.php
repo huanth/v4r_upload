@@ -188,6 +188,8 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
 
         .images-table td {
             font-size: 0.98rem;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .no-images {

@@ -42,7 +42,7 @@ if ($file["error"] !== UPLOAD_ERR_OK) {
 
 // Validate file size
 if ($file["size"] > MAX_FILE_SIZE) {
-    echo json_encode(['success' => false, 'message' => 'File size exceeds 10MB limit']);
+    echo json_encode(['success' => false, 'message' => 'File size exceeds 100MB limit']);
     exit;
 }
 

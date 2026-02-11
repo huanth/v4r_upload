@@ -18,7 +18,7 @@ const ALLOWED_MIME_TYPES = [
     'image/webp' => ['webp'],
 ];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const UPLOAD_DIR = __DIR__ . '/uploads/';
 
 /**

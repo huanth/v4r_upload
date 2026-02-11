@@ -227,7 +227,7 @@ curl -X POST "https://up.v4r.net/api.php?action=delete" \
                         </tr>
                         <tr>
                             <td>413</td>
-                            <td>File quá lớn (>10MB)</td>
+                            <td>File quá lớn (>100MB)</td>
                         </tr>
                         <tr>
                             <td>500</td>

@@ -18,7 +18,7 @@ class FileUploadComponent {
         this.viewFilesBtn = document.getElementById("viewFilesBtn");
 
         this.files = [];
-        this.maxFileSize = 10 * 1024 * 1024; // 10MB
+        this.maxFileSize = 100 * 1024 * 1024; // 100MB
         this.allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
         // Read CSRF token from meta tag
@@ -136,7 +136,7 @@ class FileUploadComponent {
 
         // Check file size
         if (file.size > this.maxFileSize) {
-            this.showError(`${file.name}: File size must be less than 10MB.`);
+            this.showError(`${file.name}: File size must be less than 100MB.`);
             return false;
         }
 

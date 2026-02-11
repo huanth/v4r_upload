@@ -5,7 +5,7 @@
 ## Tính năng
 - Kéo thả, click hoặc dán để upload
 - Upload hàng loạt
-- Kiểm tra định dạng file và kích thước (tối đa 10MB)
+- Kiểm tra định dạng file và kích thước (tối đa 100MB)
 - Đổi tên file ngẫu nhiên: `32kytu_timestamp_tenanh.ext` (chống đoán tên file)
 - Sao chép link: URL, BBCode, HTML, Markdown
 - Xoá file từ giao diện và server

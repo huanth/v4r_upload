@@ -19,7 +19,14 @@ class FileUploadComponent {
 
         this.files = [];
         this.maxFileSize = 100 * 1024 * 1024; // 100MB
-        this.allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+        this.allowedTypes = [
+            "image/jpeg", "image/png", "image/gif", "image/webp",
+            "application/zip", "application/x-zip-compressed", "multipart/x-zip",
+            "application/x-rar-compressed", "application/vnd.rar",
+            "application/x-7z-compressed",
+            "application/x-tar",
+            "application/gzip", "application/x-gzip"
+        ];
 
         // Read CSRF token from meta tag
         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
@@ -129,9 +136,17 @@ class FileUploadComponent {
 
     validateFile(file) {
         // Check file type
-        if (!this.allowedTypes.includes(file.type)) {
-            this.showError(`${file.name}: Only JPG, PNG, GIF, and WEBP files are allowed.`);
-            return false;
+        if (!this.allowedTypes.includes(file.type) && !file.type.match(/application\/(x-)?(zip|rar|7z|tar|gzip|octet-stream)/)) {
+            // Note: Some browsers report empty type or weird types for archives, so we might need looser check or rely on extension if type is empty
+            if (!this.allowedTypes.includes(file.type)) {
+                // Fallback check by extension if type is empty or octet-stream
+                const ext = file.name.split('.').pop().toLowerCase();
+                const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'rar', '7z', 'tar', 'gz'];
+                if (!allowedExts.includes(ext)) {
+                    this.showError(`${file.name}: Unsupported file type.`);
+                    return false;
+                }
+            }
         }
 
         // Check file size
@@ -157,6 +172,8 @@ class FileUploadComponent {
             size: this.formatFileSize(file.size),
             status: "pending",
             progress: 0,
+            startTime: 0,
+            loaded: 0
         };
 
         this.files.push(fileObj);
@@ -170,28 +187,39 @@ class FileUploadComponent {
 
         const escapedName = this.escapeHtml(fileObj.name);
 
-        // Create preview image
-        const reader = new FileReader();
-        reader.onload = (e) => {
+        const updateContent = (src, isIcon = false) => {
+            const style = isIcon ? 'padding: 10px; background: rgba(255,255,255,0.2);' : '';
             fileElement.innerHTML = `
-                <img src="${e.target.result}" alt="${escapedName}" class="file-preview">
+                <img src="${src}" alt="${escapedName}" class="file-preview" style="${style}">
                 <div class="file-info">
                     <div class="file-name">${escapedName}</div>
                     <div class="file-size">${fileObj.size}</div>
                 </div>
                 <div class="file-status">
+                     <div class="upload-speed" style="font-size: 0.8rem; color: #666; margin-right: 10px;"></div>
                     <div class="status-icon status-uploading">⏳</div>
                 </div>
                 <div class="file-actions">
                     <button class="file-action delete" onclick="fileUpload.removeFile('${fileObj.id}')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            <path d="M3 6h18M19 6v14a2 2 0 0 0-2 2H7a2 2 0 0 0-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                         </svg>
                     </button>
                 </div>
             `;
         };
-        reader.readAsDataURL(fileObj.file);
+
+        if (fileObj.file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                updateContent(e.target.result);
+            };
+            reader.readAsDataURL(fileObj.file);
+        } else {
+            // Archive icon (Box/Package)
+            const icon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'%3E%3C/polyline%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'%3E%3C/line%3E%3C/svg%3E";
+            updateContent(icon, true);
+        }
 
         this.filesList.appendChild(fileElement);
     }
@@ -221,10 +249,26 @@ class FileUploadComponent {
                 xhr.setRequestHeader("X-CSRF-Token", this.csrfToken);
             }
 
+            fileObj.startTime = Date.now();
+            fileObj.loaded = 0;
+
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = Math.round((e.loaded / e.total) * 100);
                     fileObj.progress = percent;
+
+                    // Calculate speed
+                    const now = Date.now();
+                    const diffTime = (now - fileObj.startTime) / 1000; // time in seconds
+                    if (diffTime > 0) {
+                        const speedBytes = e.loaded / diffTime;
+                        const speedText = this.formatFileSize(speedBytes) + '/s';
+                        if (fileElement) {
+                            const speedDiv = fileElement.querySelector(".upload-speed");
+                            if (speedDiv) speedDiv.textContent = speedText;
+                        }
+                    }
+
                     if (fileElement) {
                         const statusIcon = fileElement.querySelector(".status-icon");
                         statusIcon.textContent = percent + "%";
@@ -248,6 +292,8 @@ class FileUploadComponent {
                         const statusIcon = fileElement.querySelector(".status-icon");
                         statusIcon.className = "status-icon status-success";
                         statusIcon.textContent = "✓";
+                        const speedDiv = fileElement.querySelector(".upload-speed");
+                        if (speedDiv) speedDiv.style.display = 'none'; // Hide speed on completion
                     }
                     this.showFileUrl(fileObj);
                 } else {

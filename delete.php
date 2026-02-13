@@ -44,7 +44,7 @@ $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 
 if (!in_array($ext, $allowedExtensions)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Not an image file']);
+    echo json_encode(['success' => false, 'message' => 'Invalid file type']);
     exit;
 }
 

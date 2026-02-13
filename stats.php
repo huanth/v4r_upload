@@ -13,10 +13,13 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+require_once __DIR__ . '/config.php';
+
 // Bulk delete password — stored server-side only
 const BULK_DELETE_PASSWORD = 'admin2026';
 
-$dir = __DIR__ . '/uploads';
+$dir = UPLOAD_DIR;
+$allowedExtensions = array_merge(...array_values(ALLOWED_MIME_TYPES));
 $perPage = 10;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $start = ($page - 1) * $perPage;
@@ -38,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all'])) {
                     $filePath = $dir . '/' . $file;
                     if (is_file($filePath)) {
                         $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                        if (in_array($ext, $allowedExtensions)) {
                             if (unlink($filePath)) {
                                 $deleted++;
                             }
@@ -70,7 +73,7 @@ if (is_dir($dir)) {
             $filePath = $dir . '/' . $file;
             if (is_file($filePath)) {
                 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                if (in_array($ext, $allowedExtensions)) {
                     $totalFiles++;
                     $size = filesize($filePath);
                     $totalSize += $size;
@@ -387,7 +390,7 @@ $totalPages = $totalFiles ? ceil($totalFiles / $perPage) : 1;
     <div class="stats-box">
         <div class="stats-title">Upload Statistics</div>
         <ul class="stats-list">
-            <li><b>Total images:</b> <?php echo $totalFiles; ?></li>
+            <li><b>Total files:</b> <?php echo $totalFiles; ?></li>
             <li><b>Total size:</b> <?php echo formatSize($totalSize); ?></li>
         </ul>
 

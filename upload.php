@@ -55,11 +55,13 @@ if (!isset(ALLOWED_MIME_TYPES[$detectedMime])) {
     exit;
 }
 
-// Double-check with getimagesize
-$imageInfo = getimagesize($file["tmp_name"]);
-if ($imageInfo === false) {
-    echo json_encode(['success' => false, 'message' => 'File is not a valid image']);
-    exit;
+// Double-check with getimagesize ONLY if it is an image
+if (strpos($detectedMime, 'image/') === 0) {
+    $imageInfo = getimagesize($file["tmp_name"]);
+    if ($imageInfo === false) {
+        echo json_encode(['success' => false, 'message' => 'File is not a valid image']);
+        exit;
+    }
 }
 
 // Use detected MIME to determine safe extension

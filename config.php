@@ -16,6 +16,16 @@ const ALLOWED_MIME_TYPES = [
     'image/png'  => ['png'],
     'image/gif'  => ['gif'],
     'image/webp' => ['webp'],
+    // Archives
+    'application/zip'              => ['zip'],
+    'application/x-zip-compressed' => ['zip'],
+    'multipart/x-zip'              => ['zip'],
+    'application/x-rar-compressed' => ['rar'],
+    'application/vnd.rar'          => ['rar'],
+    'application/x-7z-compressed'  => ['7z'],
+    'application/x-tar'            => ['tar'],
+    'application/gzip'             => ['gz'],
+    'application/x-gzip'           => ['gz'],
 ];
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
